@@ -1,12 +1,12 @@
 import {User} from "../models/user.model.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import { use } from "react";
 
 //Register method
 export const register=async (req, res)=>{
     try{
         const {fullname, email, phoneNumber, password, role}= req.body;
+
         if(!fullname || !email || !phoneNumber || !password || !role){
             return res.status(400).json({
                 message:"Something is missing",
@@ -35,8 +35,7 @@ export const register=async (req, res)=>{
             message:"Account created successfully!",
             success:true,
         });
-
-    }catch (error){
+    } catch (error){
         console.error(error);
         res.status(500).json({ message: "Server error", success: false });
     }
@@ -55,7 +54,7 @@ export const login=async(req, res)=>{
             })
         }
         //Now we'll check the entered password
-        const user=await User.findOne({email});
+        let user=await User.findOne({email});
         if(!user){
             return res.status(400).json({
                 message:"Incorrect email or password",
@@ -85,14 +84,13 @@ export const login=async(req, res)=>{
 
         const token= await jwt.sign(tokenData, process.env.SECRET_KEY,{expiresIn:'1d'});
 
-        user={
-            _id:user._id,
-            fullname:user.fullname,
-            email:user.email,
-            phoneNumber:user.phoneNumber,
-            role:user.role,
-            profile:user.profile
-
+        user = {
+            _id: user._id,
+            fullname: user.fullname,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            role: user.role,
+            profile: user.profile
         }
 
         return res.status(200).cookie("token", token, {maxAge:1*24*60*60*1000, httpsOnly:true, sameSite:'strict'}).json({
@@ -123,15 +121,12 @@ export const updateProfile=async (req, res)=>{
     try{
         const {fullname, email, phoneNumber, bio, skills}=req.body;
         const file=req.file;
-        if(!fullname || !email || !phoneNumber || !bio || !skills){
-            return res.status(400).json({
-                message:"Something is missing",
-                success:false,
-            });
-        };
 
-        const skillsArray=skills.split(",");
-        const userId=req._id;  //middleware authentication
+        let skillsArray;
+        if(skills){
+            skillsArray=skills.split(",");
+        }
+        const userId=req.id;  //middleware authentication
         let user = await User.findById(userId);
 
         if(!user){
@@ -140,12 +135,12 @@ export const updateProfile=async (req, res)=>{
                 success:false,
             })
         }
-
-        user.fullname=fullname;
-        user.email=email;
-        user.phoneNumber=phoneNumber;
-        user.profile.bio=bio;
-        user.profile.skills=skillsArray;
+        //Updating data
+        if(fullname) user.fullname=fullname
+        if(email) user.email=email
+        if(phoneNumber) user.phoneNumber=phoneNumber
+        if(bio) user.profile.bio = bio
+        if(skills) user.profile.skills=skillsArray
 
         await user.save();
 
@@ -163,9 +158,7 @@ export const updateProfile=async (req, res)=>{
             user,
             success:true
         })
-
-    }
-    catch (error){
+    } catch (error){
         console.log(error);
     }
 }
